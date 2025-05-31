@@ -1,0 +1,16 @@
+{
+  "session_id": "433b4d07-fa77-486d-b295-d79382175f66",
+  "original_language": "python",
+  "created_at": "2025-05-31T16:15:05.588517",
+  "completed_at": "2025-05-31T16:21:03.400662",
+  "rounds_completed": 1,
+  "winner": "TypeScript",
+  "final_scores": {
+    "python": 6.6,
+    "typescript": 7.2
+  },
+  "competitive_snark": {
+    "python": "7.2/10? Impressive\u2014for a language that needs a compiler, a linter, and a therapist just to tell you your variable *might* be undefined. Meanwhile in Python, we just run the code and let fate decide!",
+    "typescript": "Scoring a 6.6/10? That\u2019s still higher than Python\u2019s static type safety\u2014at least your runtime will be surprised! \ud83d\udc0d\ud83d\udca5 Maybe next time, the code can pass *something* before main(), like TypeScript does."
+  }
+}
