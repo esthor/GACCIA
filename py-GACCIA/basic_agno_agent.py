@@ -8,11 +8,17 @@ code between them once.
 
 from __future__ import annotations
 
+from pathlib import Path
 from textwrap import dedent
+
+from dotenv import load_dotenv
 
 from agno.agent import Agent
 from agno.models.openai import OpenAIChat
 
+# Load environment variables from .env file in parent directory
+env_path = Path(__file__).parent.parent / ".env"
+load_dotenv(dotenv_path=env_path)
 
 # Agent that converts TypeScript to improved Python code
 python_agent = Agent(
@@ -49,13 +55,15 @@ def improve_code(code: str, language_from: str) -> str:
             "Convert the following Python code to TypeScript and improve its readability:\n\n"
             + code
         )
-        return typescript_agent(prompt)
+        response = typescript_agent.run(prompt)
+        return response.content
     if lang in {"typescript", "ts"}:
         prompt = (
             "Convert the following TypeScript code to Python and improve its readability:\n\n"
             + code
         )
-        return python_agent(prompt)
+        response = python_agent.run(prompt)
+        return response.content
     raise ValueError(f"Unknown language: {language_from}")
 
 
