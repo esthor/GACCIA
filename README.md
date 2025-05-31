@@ -12,6 +12,11 @@ Core: Setup two agents (or two multi-agent flows) that write matching code in an
 ## Hackathon Requirements:
 1. Multi-agent: At least two agents
 2. Multi-modal: At least 2 modes of agents (text + image)
+3. MUST use [Koyeb](https://www.koyeb.com/) + [Tenstorrent](tenstorrent.com/) processors for at least 1 of the agents (we have this setup with vllm running `tt-qwen-qwen2-5-7b-instruct`)
+4. Bonus: Use [Inngest](https://www.inngest.com/)
+5. Bonus: Use [dagger](https://dagger.io/)
+6. Bonus: Use [Neon serverless postgres](https://neon.tech/)
+
 
 ## Draft Ideas
 
