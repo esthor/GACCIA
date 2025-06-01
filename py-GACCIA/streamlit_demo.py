@@ -3,6 +3,7 @@ import asyncio
 import os
 from pathlib import Path
 from gaccia_main import GACCIAComplete, EXAMPLE_CODES
+from results_manager import ResultsLogger
 from gaccia_with_images import EnhancedGACCIAOrchestrator
 
 st.title("🥊 GACCIA: Code Competition Arena")
@@ -36,7 +37,10 @@ if st.sidebar.button(button_text):
         with st.spinner("🎬 Running epic coding battle with live image generation..."):
             try:
                 orchestrator = EnhancedGACCIAOrchestrator()
-                completed_session, images = orchestrator.run_complete_competition_with_images(code, language, rounds)
+                logger = ResultsLogger(f"{example}_{language}_img")
+                completed_session, images = orchestrator.run_complete_competition_with_images(
+                    code, language, rounds, logger=logger
+                )
                 
                 # Display battle start image
                 if "battle_start" in images and Path(images["battle_start"]).exists():
@@ -76,12 +80,14 @@ if st.sidebar.button(button_text):
                 # Fallback to standard competition
                 with st.spinner("Running standard competitive coding session..."):
                     gaccia = GACCIAComplete()
-                    completed_session = gaccia.run_complete_competition(code, language, rounds)
+                    logger = ResultsLogger(f"{example}_fallback")
+                    completed_session = gaccia.run_complete_competition(code, language, rounds, logger=logger)
     else:
         # Run standard competition
         with st.spinner("Running competitive coding session..."):
             gaccia = GACCIAComplete()
-            completed_session = gaccia.run_complete_competition(code, language, rounds)
+            logger = ResultsLogger(f"{example}_{language}")
+            completed_session = gaccia.run_complete_competition(code, language, rounds, logger=logger)
         
         st.success("Competition Complete!")
     

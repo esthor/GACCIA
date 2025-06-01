@@ -20,6 +20,7 @@ from agno.agent import Agent
 from agno.models.openai import OpenAIChat
 
 from gaccia_evaluators import CompetitiveEvaluation
+from results_manager import ResultsLogger
 from model_config import create_model
 
 # Load environment variables
@@ -506,9 +507,17 @@ class GACCIAOrchestrator:
         self.typescript_coder = TypeScriptCoder()
 
     def run_competitive_session(
-        self, code: str, language: str, rounds: int = 3
+        self,
+        code: str,
+        language: str,
+        rounds: int = 3,
+        logger: Optional[ResultsLogger] = None,
     ) -> GACCIASession:
-        """Run a complete competitive coding session."""
+        """Run a complete competitive coding session.
+
+        If ``logger`` is provided, each round's implementation will be saved
+        to the results directory as it is produced.
+        """
         session = GACCIASession(original_code=code, original_language=language.lower())
 
         current_code = code
@@ -530,6 +539,9 @@ class GACCIAOrchestrator:
                 session.python_implementations.append(implementation)
             else:
                 session.typescript_implementations.append(implementation)
+
+            if logger:
+                logger.log_round(round_num + 1, implementation)
 
             # Update for next round
             current_code = implementation.code
@@ -688,7 +700,8 @@ if __name__ == "__main__":
     print("=" * 60)
 
     # Run competitive session
-    session = orchestrator.run_competitive_session(demo_code, "python", rounds=2)
+    logger = ResultsLogger("demo_session")
+    session = orchestrator.run_competitive_session(demo_code, "python", rounds=2, logger=logger)
 
     print("\n📊 Session Results:")
     print(f"Session ID: {session.session_id}")
@@ -696,26 +709,7 @@ if __name__ == "__main__":
     print(f"TypeScript implementations: {len(session.typescript_implementations)}")
 
     # Save results
-    results_dir = Path("results") / f"session_{session.session_id}"
-    results_dir.mkdir(parents=True, exist_ok=True)
-
-    # Save session data (simplified)
-    with open(results_dir / "session.json", "w") as f:
-        # Note: This would need proper serialization for complex objects
-        json.dump(
-            {
-                "session_id": session.session_id,
-                "original_code": session.original_code,
-                "original_language": session.original_language,
-                "created_at": session.created_at.isoformat(),
-                "python_count": len(session.python_implementations),
-                "typescript_count": len(session.typescript_implementations),
-            },
-            f,
-            indent=2,
-        )
-
-    print(f"📁 Results saved to {results_dir}")
+    print(f"📁 Results saved to {logger.base_dir}")
 
 
 if __name__ == "__main__":

@@ -24,6 +24,7 @@ from gaccia_agents import (
 )
 from gaccia_evaluators import EvaluationOrchestrator, CompetitiveEvaluation
 from gaccia_main import CompletedGACCIASession
+from results_manager import ResultsLogger
 
 
 class EnhancedGACCIAOrchestrator(GACCIAOrchestrator):
@@ -37,7 +38,11 @@ class EnhancedGACCIAOrchestrator(GACCIAOrchestrator):
         self.evaluator = EvaluationOrchestrator()  # Add evaluator
 
     def run_competitive_session_with_images(
-        self, code: str, language: str, rounds: int = 2
+        self,
+        code: str,
+        language: str,
+        rounds: int = 2,
+        logger: Optional[ResultsLogger] = None,
     ) -> tuple[GACCIASession, Dict[str, str]]:
         """Run competitive session with live image generation."""
 
@@ -74,6 +79,9 @@ class EnhancedGACCIAOrchestrator(GACCIAOrchestrator):
             else:
                 session.typescript_implementations.append(implementation)
 
+            if logger:
+                logger.log_round(round_num + 1, implementation)
+
             # Generate round completion image
             self._generate_round_completion_image(
                 round_num + 1, target_language, implementation
@@ -89,6 +97,9 @@ class EnhancedGACCIAOrchestrator(GACCIAOrchestrator):
 
         # Generate final battle completion image
         self._generate_battle_completion_image(session)
+
+        if logger:
+            logger.log_image_prompts(self.generated_images)
 
         return session, self.generated_images
 
@@ -318,7 +329,11 @@ class EnhancedGACCIAOrchestrator(GACCIAOrchestrator):
             return image_data  # Return original URL as fallback
 
     def run_complete_competition_with_images(
-        self, code: str, language: str, rounds: int = 2
+        self,
+        code: str,
+        language: str,
+        rounds: int = 2,
+        logger: Optional[ResultsLogger] = None,
     ) -> tuple[CompletedGACCIASession, Dict[str, str]]:
         """Run a complete competitive session with evaluation and live image generation."""
 
@@ -331,7 +346,10 @@ class EnhancedGACCIAOrchestrator(GACCIAOrchestrator):
         # Phase 1: Competitive Development with Images
         print("🥊 PHASE 1: COMPETITIVE DEVELOPMENT WITH LIVE IMAGES")
         print("-" * 60)
-        session, images = self.run_competitive_session_with_images(code, language, rounds)
+        if logger is None:
+            logger = ResultsLogger("gaccia_with_images")
+
+        session, images = self.run_competitive_session_with_images(code, language, rounds, logger=logger)
 
         # Phase 2: Evaluation
         print("\n🏆 PHASE 2: COMPETITIVE EVALUATION")
@@ -349,6 +367,11 @@ class EnhancedGACCIAOrchestrator(GACCIAOrchestrator):
 
         # Create completed session
         completed_session = CompletedGACCIASession(session, evaluation)
+
+        if logger:
+            logger.log_evaluation(evaluation)
+            logger.save_summary(session, evaluation)
+            logger.log_image_prompts(self.generated_images)
 
         # Print results
         self._print_final_results(completed_session)
