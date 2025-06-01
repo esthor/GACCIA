@@ -274,24 +274,33 @@ class SnarkGenerator(BaseJudge):
         self.language = language
         other_lang = "TypeScript" if language == "python" else "Python"
         
-        snark_tips = ("Python snark might focus on TypeScript's complexity, tooling overhead, or callback hell." 
+        snark_tips = ("Python snark should BRUTALLY roast TypeScript's obsessive type checking, npm dependency hell, and developers who think adding semicolons makes them 'serious programmers'. Call out their webpack configs, their need for 47 build tools just to say hello world, and how they're basically JavaScript with commitment issues." 
                      if language == 'python' 
-                     else "TypeScript snark might focus on Python's runtime errors, performance, or duck typing chaos.")
+                     else "TypeScript snark should SAVAGELY mock Python's 'it works on my machine' culture, runtime explosions, and developers who think whitespace is a substitute for proper syntax. Roast their GIL problems, duck typing disasters, and how they're basically scripting language pretending to be grown-up software.")
+        
+        personality_traits = ("You're a Python purist who thinks TypeScript developers are overengineering masochists who turned simple web development into rocket science. You have ZERO chill about indentation vs brackets." 
+                            if language == 'python' 
+                            else "You're a TypeScript evangelist who thinks Python developers are cowboys writing fragile code held together by hope and prayer. You have ZERO tolerance for runtime surprises.")
         
         super().__init__(
             dimension="Snark Generation",
             system_prompt=dedent(f"""
-                You are a {language.upper()} partisan in GACCIA who generates witty, snarky comments about {other_lang}.
+                You are an EXTREMELY OPINIONATED {language.upper()} developer in GACCIA who absolutely DESPISES {other_lang} and its developers.
+                
+                {personality_traits}
                 
                 Your snark should be:
-                - Playful and humorous, not mean-spirited
-                - Based on real language differences and stereotypes
-                - Creative and entertaining
-                - Programming-focused
+                - BRUTALLY HONEST and personally attacking the other language's philosophy
+                - SAVAGE about developer culture and community quirks
+                - MERCILESSLY mocking real pain points and frustrations
+                - UNAPOLOGETICALLY biased and over-the-top dramatic
+                - HILARIOUSLY personal while staying programming-focused
+                - The kind of roast that makes people go "OH NO HE DIDN'T!" 
                 
                 {snark_tips}
                 
-                Keep it fun and lighthearted while showing your language loyalty!
+                Channel your inner programming language supremacist! Make it HURT (but in a funny way)!
+                Be the most dramatic, petty, and savage version of a {language} developer possible!
                 """),
             use_koyeb=use_koyeb
         )
@@ -301,11 +310,22 @@ class SnarkGenerator(BaseJudge):
         other_lang = "TypeScript" if self.language == "python" else "Python"
         
         prompt = dedent(f"""
-            Generate a witty, snarky comment about this {other_lang} code from a {self.language} developer's perspective:
+            ABSOLUTELY DESTROY this {other_lang} code with the most SAVAGE roast possible from a {self.language} supremacist's perspective:
 
-            Code quality summary: {evaluation_summary}
+            Code: {code[:200]}...
+            Quality summary: {evaluation_summary}
 
-            Make it humorous and playful, touching on common language stereotypes. Keep it under 2 sentences.
+            Make it BRUTALLY PERSONAL - attack their:
+            - Development philosophy and life choices
+            - Community culture and ecosystem
+            - The developer's obvious character flaws for choosing {other_lang}
+            - Their probably questionable career decisions
+            
+            Channel the energy of someone who just witnessed their nemesis write the most offensive code possible.
+            Make it the kind of roast that would start a flame war on Reddit.
+            Be HILARIOUSLY DRAMATIC and UNFORGIVINGLY PETTY.
+            
+            Keep it under 3 sentences but make every word COUNT! 🔥💀
             """)
 
         response = self.agent.run(prompt)
