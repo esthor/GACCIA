@@ -3,9 +3,9 @@ from __future__ import annotations
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict
 
-from gaccia_agents import CodeImplementation, GACCIASession
+from gaccia_types import CodeImplementation, GACCIASession
 from gaccia_evaluators import CompetitiveEvaluation, EvaluationOrchestrator
 
 
