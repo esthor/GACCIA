@@ -10,7 +10,7 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 from textwrap import dedent
-from typing import Dict, List, Tuple
+from typing import List
 
 from agno.agent import Agent
 
@@ -260,16 +260,27 @@ class SecurityPerformanceJudge(BaseJudge):
         )
 
 
-class SnarkGenerator:
+class SnarkGenerator(BaseJudge):
     """Generates snarky comments about the competing language."""
     
     def __init__(self, language: str, use_koyeb: bool = False):
+        """
+        Initialize a snark generator for the specified language.
+        
+        Args:
+            language: The language perspective (e.g., "python")
+            use_koyeb: If True, use Koyeb-hosted model instead of OpenAI
+        """
         self.language = language
         other_lang = "TypeScript" if language == "python" else "Python"
         
-        self.agent = Agent(
-            model=create_model(use_koyeb),
-            instructions=dedent(f"""
+        snark_tips = ("Python snark might focus on TypeScript's complexity, tooling overhead, or callback hell." 
+                     if language == 'python' 
+                     else "TypeScript snark might focus on Python's runtime errors, performance, or duck typing chaos.")
+        
+        super().__init__(
+            dimension="Snark Generation",
+            system_prompt=dedent(f"""
                 You are a {language.upper()} partisan in GACCIA who generates witty, snarky comments about {other_lang}.
                 
                 Your snark should be:
@@ -278,25 +289,25 @@ class SnarkGenerator:
                 - Creative and entertaining
                 - Programming-focused
                 
-                {'Python snark might focus on TypeScript\'s complexity, tooling overhead, or "callback hell".' if language == 'python' else 'TypeScript snark might focus on Python\'s runtime errors, performance, or "duck typing chaos".'}
+                {snark_tips}
                 
                 Keep it fun and lighthearted while showing your language loyalty!
                 """),
-            markdown=True,
+            use_koyeb=use_koyeb
         )
     
     def generate_snark(self, code: str, evaluation_summary: str) -> str:
         """Generate a snarky comment about the competing language's code."""
         other_lang = "TypeScript" if self.language == "python" else "Python"
         
-        prompt = f"""
-        Generate a witty, snarky comment about this {other_lang} code from a {self.language} developer's perspective:
-        
-        Code quality summary: {evaluation_summary}
-        
-        Make it humorous and playful, touching on common language stereotypes. Keep it under 2 sentences.
-        """
-        
+        prompt = dedent(f"""
+            Generate a witty, snarky comment about this {other_lang} code from a {self.language} developer's perspective:
+
+            Code quality summary: {evaluation_summary}
+
+            Make it humorous and playful, touching on common language stereotypes. Keep it under 2 sentences.
+            """)
+
         response = self.agent.run(prompt)
         return response.content.strip()
 

@@ -30,12 +30,12 @@ from results_manager import ResultsLogger
 class EnhancedGACCIAOrchestrator(GACCIAOrchestrator):
     """Enhanced orchestrator with live image generation during battles."""
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, use_koyeb: bool = False):
+        super().__init__(use_koyeb=use_koyeb)
         self.image_agent = ImageGenerationAgent()
         self.openai_client = OpenAI()  # Will use OPENAI_API_KEY from env
         self.generated_images = {}  # Store image URLs/paths
-        self.evaluator = EvaluationOrchestrator()  # Add evaluator
+        self.evaluator = EvaluationOrchestrator(use_koyeb=use_koyeb)  # Add evaluator
 
     def run_competitive_session_with_images(
         self,
@@ -522,8 +522,8 @@ class EnhancedGACCIAOrchestrator(GACCIAOrchestrator):
 def run_enhanced_battle_demo():
     """Run an enhanced battle demo with live image generation."""
 
-    # Enhanced orchestrator with images
-    orchestrator = EnhancedGACCIAOrchestrator()
+    # Enhanced orchestrator with images - use Koyeb
+    orchestrator = EnhancedGACCIAOrchestrator(use_koyeb=False)
 
     # Example code for battle
     demo_code = '''

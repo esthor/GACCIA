@@ -97,7 +97,7 @@ class PythonArchitect:
 
     def __init__(self):
         self.agent = Agent(
-            model=OpenAIChat(id="gpt-4.1"),
+            model=create_model("gpt-4.1"),
             instructions=dedent("""
                 You are the **Python Architect** in GACCIA - a Python expert and advocate.
                 
@@ -189,7 +189,7 @@ class TypeScriptArchitect:
 
     def __init__(self):
         self.agent = Agent(
-            model=OpenAIChat(id="gpt-4.1"),
+            model=create_model("gpt-4.1"),
             instructions=dedent("""
                 You are the **TypeScript Architect** in GACCIA - a TypeScript expert and advocate.
                 
@@ -277,7 +277,7 @@ class PolyglotArchitect:
 
     def __init__(self):
         self.agent = Agent(
-            model=OpenAIChat(id="gpt-4.1"),
+            model=create_model("gpt-4.1"),
             instructions=dedent("""
                 You are the **Polyglot Architect** in GACCIA - an expert in cross-language conversion.
                 
@@ -362,7 +362,7 @@ class PythonCoder:
 
     def __init__(self):
         self.agent = Agent(
-            model=OpenAIChat(id="gpt-4.1"),
+            model=create_model("gpt-4.1"),
             instructions=dedent("""
                 You are the **Python Coder** in GACCIA - focused on implementing clean Python code.
                 
@@ -405,7 +405,7 @@ class TypeScriptCoder:
 
     def __init__(self):
         self.agent = Agent(
-            model=OpenAIChat(id="gpt-4.1"),
+            model=create_model("gpt-4.1"),
             instructions=dedent("""
                 You are the **TypeScript Coder** in GACCIA - focused on implementing robust TypeScript code.
                 
@@ -585,7 +585,7 @@ class ImageGenerationAgent:
 
     def __init__(self):
         self.agent = Agent(
-            model=OpenAIChat("gpt-4o"),
+            model=OpenAIChat("gpt-4.1"),
             instructions=dedent("""
                 You are the Image Generation Agent for GACCIA.
                 You create detailed prompts for image generation that capture:
