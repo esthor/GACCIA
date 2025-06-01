@@ -11,6 +11,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
+from results_manager import ResultsLogger
+
 from dotenv import load_dotenv
 
 # Import our GACCIA modules (assuming they're in the same directory)
@@ -66,7 +68,13 @@ class GACCIAComplete:
         self.orchestrator = GACCIAOrchestrator(use_koyeb=use_koyeb)
         self.evaluator = EvaluationOrchestrator(use_koyeb=use_koyeb)
     
-    def run_complete_competition(self, code: str, language: str, rounds: int = 2) -> CompletedGACCIASession:
+    def run_complete_competition(
+        self,
+        code: str,
+        language: str,
+        rounds: int = 2,
+        logger: Optional[ResultsLogger] = None,
+    ) -> CompletedGACCIASession:
         """Run a complete competitive session with evaluation."""
         
         print("🚀 GACCIA: Generative Adversarial Competitive Code Improvement")
@@ -83,7 +91,12 @@ class GACCIAComplete:
         # Phase 1: Competitive Development
         print("🥊 PHASE 1: COMPETITIVE DEVELOPMENT")
         print("-" * 50)
-        session = self.orchestrator.run_competitive_session(code, language, rounds)
+        if logger is None:
+            logger = ResultsLogger("gaccia_run")
+
+        session = self.orchestrator.run_competitive_session(
+            code, language, rounds, logger=logger
+        )
         
         # Phase 2: Evaluation
         print("\n🏆 PHASE 2: COMPETITIVE EVALUATION")
@@ -99,9 +112,13 @@ class GACCIAComplete:
         
         # Run evaluation
         evaluation = self.evaluator.evaluate_implementations(final_python, final_typescript)
-        
+
+        logger.log_evaluation(evaluation)
+
         # Create completed session
         completed_session = CompletedGACCIASession(session, evaluation)
+
+        logger.save_summary(session, evaluation)
         
         # Print results
         self._print_final_results(completed_session)
@@ -384,15 +401,15 @@ def main():
     
     try:
         # Run the complete competition
-        completed_session = gaccia.run_complete_competition(code, language, rounds)
-        
+        logger = ResultsLogger(f"{example_name}_{language}")
+        completed_session = gaccia.run_complete_competition(
+            code, language, rounds, logger=logger
+        )
+
         if completed_session:
-            # Save results
-            results_dir = gaccia.save_complete_results(completed_session, f"{example_name}_{language}")
-            
             print(f"\n✅ Competition completed successfully!")
-            print(f"📁 View detailed results in: {results_dir}")
-            print(f"📖 Open {results_dir}/README.md for a summary report")
+            print(f"📁 View detailed results in: {logger.base_dir}")
+            print(f"📖 Open {logger.base_dir}/SUMMARY.md for a summary report")
         
     except KeyboardInterrupt:
         print("\n⏹️  Competition stopped by user.")
