@@ -13,7 +13,8 @@ from textwrap import dedent
 from typing import Dict, List, Tuple
 
 from agno.agent import Agent
-from agno.models.openai import OpenAIChat
+
+from model_config import create_model
 
 
 @dataclass
@@ -43,10 +44,18 @@ class CompetitiveEvaluation:
 class BaseJudge:
     """Base class for all evaluation judges."""
     
-    def __init__(self, dimension: str, system_prompt: str):
+    def __init__(self, dimension: str, system_prompt: str, use_koyeb: bool = False):
+        """
+        Initialize a judge with optional Koyeb model support.
+        
+        Args:
+            dimension: The evaluation dimension (e.g., "readability")
+            system_prompt: The system prompt for the judge
+            use_koyeb: If True, use Koyeb-hosted model instead of OpenAI
+        """
         self.dimension = dimension
         self.agent = Agent(
-            model=OpenAIChat(id="gpt-4.1"),
+            model=create_model("gpt-4.1", use_koyeb=use_koyeb),
             instructions=system_prompt,
             markdown=True,
         )
@@ -84,7 +93,7 @@ class BaseJudge:
                 try:
                     score = float(line.split(":")[1].strip())
                     break
-                except:
+                except (ValueError, IndexError):
                     pass
         
         return DetailedEvaluation(
@@ -100,7 +109,7 @@ class BaseJudge:
 class ReadabilityJudge(BaseJudge):
     """Judge for code readability."""
     
-    def __init__(self, language: str):
+    def __init__(self, language: str, use_koyeb: bool = False):
         perspective = "Python" if language == "python" else "TypeScript"
         super().__init__(
             dimension="Readability",
@@ -122,14 +131,15 @@ class ReadabilityJudge(BaseJudge):
                 - 4-6: Somewhat readable but has issues
                 - 7-8: Good readability with minor issues
                 - 9-10: Excellent readability, exemplary code
-                """)
+                """),
+            use_koyeb=use_koyeb
         )
 
 
 class MaintainabilityJudge(BaseJudge):
     """Judge for code maintainability."""
     
-    def __init__(self, language: str):
+    def __init__(self, language: str, use_koyeb: bool = False):
         perspective = "Python" if language == "python" else "TypeScript"
         super().__init__(
             dimension="Maintainability",
@@ -152,14 +162,15 @@ class MaintainabilityJudge(BaseJudge):
                 - 4-6: Some maintainability concerns
                 - 7-8: Well-structured and maintainable
                 - 9-10: Exceptional maintainability design
-                """)
+                """),
+            use_koyeb=use_koyeb
         )
 
 
 class LatestToolsJudge(BaseJudge):
     """Judge for usage of latest tools and practices."""
     
-    def __init__(self, language: str):
+    def __init__(self, language: str, use_koyeb: bool = False):
         perspective = "Python" if language == "python" else "TypeScript"
         tools = "uv, ruff, mypy, pytest" if language == "python" else "Vite, TypeScript 5.0+, Vitest, ESLint"
         
@@ -183,14 +194,15 @@ class LatestToolsJudge(BaseJudge):
                 - 4-6: Mix of modern and outdated approaches
                 - 7-8: Good use of modern tools with minor gaps
                 - 9-10: Cutting-edge, exemplary use of latest practices
-                """)
+                """),
+            use_koyeb=use_koyeb
         )
 
 
 class DocsEnjoyabilityJudge(BaseJudge):
     """Judge for documentation enjoyability."""
     
-    def __init__(self, language: str):
+    def __init__(self, language: str, use_koyeb: bool = False):
         perspective = "Python" if language == "python" else "TypeScript"
         super().__init__(
             dimension="Documentation Enjoyability",
@@ -212,14 +224,15 @@ class DocsEnjoyabilityJudge(BaseJudge):
                 - 4-6: Basic documentation with room for improvement
                 - 7-8: Good documentation that's helpful
                 - 9-10: Outstanding, delightful documentation
-                """)
+                """),
+            use_koyeb=use_koyeb
         )
 
 
 class SecurityPerformanceJudge(BaseJudge):
     """Judge for security and performance considerations."""
     
-    def __init__(self, language: str):
+    def __init__(self, language: str, use_koyeb: bool = False):
         perspective = "Python" if language == "python" else "TypeScript"
         super().__init__(
             dimension="Security & Performance",
@@ -242,19 +255,20 @@ class SecurityPerformanceJudge(BaseJudge):
                 - 4-6: Some concerns but generally acceptable
                 - 7-8: Good security and performance practices
                 - 9-10: Excellent security and performance design
-                """)
+                """),
+            use_koyeb=use_koyeb
         )
 
 
 class SnarkGenerator:
     """Generates snarky comments about the competing language."""
     
-    def __init__(self, language: str):
+    def __init__(self, language: str, use_koyeb: bool = False):
         self.language = language
         other_lang = "TypeScript" if language == "python" else "Python"
         
         self.agent = Agent(
-            model=OpenAIChat(id="gpt-4.1"),
+            model=create_model(use_koyeb),
             instructions=dedent(f"""
                 You are a {language.upper()} partisan in GACCIA who generates witty, snarky comments about {other_lang}.
                 
@@ -290,26 +304,32 @@ class SnarkGenerator:
 class EvaluationOrchestrator:
     """Orchestrates the complete evaluation process."""
     
-    def __init__(self):
+    def __init__(self, use_koyeb: bool = False):
+        """
+        Initialize the evaluation orchestrator.
+        
+        Args:
+            use_koyeb: If True, use Koyeb-hosted models for evaluation judges
+        """
         # Initialize judges for both languages
         self.python_judges = {
-            "readability": ReadabilityJudge("python"),
-            "maintainability": MaintainabilityJudge("python"),
-            "latest_tools": LatestToolsJudge("python"),
-            "docs_enjoyability": DocsEnjoyabilityJudge("python"),
-            "security_performance": SecurityPerformanceJudge("python")
+            "readability": ReadabilityJudge("python", use_koyeb=use_koyeb),
+            "maintainability": MaintainabilityJudge("python", use_koyeb=use_koyeb),
+            "latest_tools": LatestToolsJudge("python", use_koyeb=use_koyeb),
+            "docs_enjoyability": DocsEnjoyabilityJudge("python", use_koyeb=use_koyeb),
+            "security_performance": SecurityPerformanceJudge("python", use_koyeb=use_koyeb)
         }
         
         self.typescript_judges = {
-            "readability": ReadabilityJudge("typescript"),
-            "maintainability": MaintainabilityJudge("typescript"),
-            "latest_tools": LatestToolsJudge("typescript"),
-            "docs_enjoyability": DocsEnjoyabilityJudge("typescript"),
-            "security_performance": SecurityPerformanceJudge("typescript")
+            "readability": ReadabilityJudge("typescript", use_koyeb=use_koyeb),
+            "maintainability": MaintainabilityJudge("typescript", use_koyeb=use_koyeb),
+            "latest_tools": LatestToolsJudge("typescript", use_koyeb=use_koyeb),
+            "docs_enjoyability": DocsEnjoyabilityJudge("typescript", use_koyeb=use_koyeb),
+            "security_performance": SecurityPerformanceJudge("typescript", use_koyeb=use_koyeb)
         }
         
-        self.python_snark = SnarkGenerator("python")
-        self.typescript_snark = SnarkGenerator("typescript")
+        self.python_snark = SnarkGenerator("python", use_koyeb=use_koyeb)
+        self.typescript_snark = SnarkGenerator("typescript", use_koyeb=use_koyeb)
     
     def evaluate_implementations(self, python_code: str, typescript_code: str) -> CompetitiveEvaluation:
         """Run complete evaluation of both implementations."""

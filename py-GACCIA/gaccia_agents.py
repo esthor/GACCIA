@@ -1,7 +1,7 @@
 """
 Complete GACCIA Agent Implementation
 
-This implements the full multi-agent architecture for the Generative Adversarial 
+This implements the full multi-agent architecture for the Generative Adversarial
 Competitive Code Improvement Agent (GACCIA) project using agno.
 """
 
@@ -19,6 +19,9 @@ from dotenv import load_dotenv
 from agno.agent import Agent
 from agno.models.openai import OpenAIChat
 
+from gaccia_evaluators import CompetitiveEvaluation
+from model_config import create_model
+
 # Load environment variables
 env_path = Path(__file__).parent.parent / ".env"
 load_dotenv(dotenv_path=env_path)
@@ -27,18 +30,22 @@ load_dotenv(dotenv_path=env_path)
 # DATA STRUCTURES
 # ============================================================================
 
+
 @dataclass
 class CodeAnalysis:
     """Represents analysis of code by a domain expert."""
+
     description: str
     language: str
     complexity: str
     key_features: List[str]
     potential_issues: List[str]
 
+
 @dataclass
 class ConversionPlan:
     """Represents a plan for converting code between languages."""
+
     source_language: str
     target_language: str
     conversion_strategy: str
@@ -46,18 +53,22 @@ class ConversionPlan:
     recommended_patterns: List[str]
     library_mappings: Dict[str, str]
 
+
 @dataclass
 class CodeImplementation:
     """Represents a code implementation with metadata."""
+
     code: str
     language: str
     version: int
     improvements: List[str]
     architect_notes: str
 
+
 @dataclass
 class EvaluationResult:
     """Represents evaluation results from judges."""
+
     readability_score: float
     maintainability_score: float
     latest_tools_score: float
@@ -67,9 +78,11 @@ class EvaluationResult:
     comments: str
     snark: str  # For the snarky comments about the other language
 
+
 @dataclass
 class GACCIASession:
     """Represents a complete GACCIA session."""
+
     session_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     original_code: str = ""
     original_language: str = ""
@@ -78,16 +91,24 @@ class GACCIASession:
     evaluations: List[EvaluationResult] = field(default_factory=list)
     created_at: datetime = field(default_factory=datetime.now)
 
+
 # ============================================================================
 # CORE AGENTS
 # ============================================================================
 
+
 class SharedKnowledgeAgent:
     """Maintains shared context and knowledge across all agents."""
-    
-    def __init__(self):
+
+    def __init__(self, use_koyeb: bool = False):
+        """
+        Initialize the SharedKnowledgeAgent.
+        
+        Args:
+            use_koyeb: If True, use Koyeb-hosted model instead of OpenAI
+        """
         self.agent = Agent(
-            model=OpenAIChat(id="gpt-4.1"),
+            model=create_model("gpt-4.1", use_koyeb=use_koyeb),
             instructions=dedent("""
                 You are the Shared Knowledge & Context Grounder for GACCIA.
                 Your role is to maintain consistent understanding across all agents.
@@ -102,16 +123,17 @@ class SharedKnowledgeAgent:
                 """),
             markdown=True,
         )
-    
+
     def get_language_info(self, language: str) -> str:
         """Get comprehensive information about a programming language."""
         prompt = f"Provide comprehensive information about {language} including current best practices, popular libraries, and ecosystem trends."
         response = self.agent.run(prompt)
         return response.content
 
+
 class PythonArchitect:
     """Python domain expert and architect."""
-    
+
     def __init__(self):
         self.agent = Agent(
             model=OpenAIChat(id="gpt-4.1"),
@@ -137,7 +159,7 @@ class PythonArchitect:
                 """),
             markdown=True,
         )
-    
+
     def analyze_code(self, code: str, language: str) -> CodeAnalysis:
         """Analyze code from a Python architect perspective."""
         prompt = f"""
@@ -153,7 +175,7 @@ class PythonArchitect:
         - Key Features: What are the main features/patterns?
         - Potential Issues: What could be improved?
         """
-        
+
         response = self.agent.run(prompt)
         # Parse response into CodeAnalysis (simplified for now)
         return CodeAnalysis(
@@ -161,10 +183,12 @@ class PythonArchitect:
             language=language,
             complexity="Medium",  # Would parse from response
             key_features=["Feature 1", "Feature 2"],  # Would parse from response
-            potential_issues=["Issue 1", "Issue 2"]  # Would parse from response
+            potential_issues=["Issue 1", "Issue 2"],  # Would parse from response
         )
-    
-    def plan_implementation(self, analysis: CodeAnalysis, conversion_plan: ConversionPlan) -> str:
+
+    def plan_implementation(
+        self, analysis: CodeAnalysis, conversion_plan: ConversionPlan
+    ) -> str:
         """Plan the Python implementation based on analysis and conversion plan."""
         prompt = f"""
         Plan a Python implementation based on:
@@ -175,10 +199,10 @@ class PythonArchitect:
         Create a detailed implementation plan that showcases Python's strengths.
         Focus on clean, readable, maintainable Python code using modern practices.
         """
-        
+
         response = self.agent.run(prompt)
         return response.content
-    
+
     def review_implementation(self, code: str) -> str:
         """Review a Python implementation."""
         prompt = f"""
@@ -194,13 +218,14 @@ class PythonArchitect:
         - Performance considerations
         - Maintainability
         """
-        
+
         response = self.agent.run(prompt)
         return response.content
 
+
 class TypeScriptArchitect:
     """TypeScript domain expert and architect."""
-    
+
     def __init__(self):
         self.agent = Agent(
             model=OpenAIChat(id="gpt-4.1"),
@@ -227,7 +252,7 @@ class TypeScriptArchitect:
                 """),
             markdown=True,
         )
-    
+
     def analyze_code(self, code: str, language: str) -> CodeAnalysis:
         """Analyze code from a TypeScript architect perspective."""
         prompt = f"""
@@ -239,17 +264,19 @@ class TypeScriptArchitect:
         
         Focus on how this could be improved with TypeScript's type system and tooling.
         """
-        
+
         response = self.agent.run(prompt)
         return CodeAnalysis(
             description=response.content[:200] + "...",
             language=language,
             complexity="Medium",
             key_features=["Feature 1", "Feature 2"],
-            potential_issues=["Issue 1", "Issue 2"]
+            potential_issues=["Issue 1", "Issue 2"],
         )
-    
-    def plan_implementation(self, analysis: CodeAnalysis, conversion_plan: ConversionPlan) -> str:
+
+    def plan_implementation(
+        self, analysis: CodeAnalysis, conversion_plan: ConversionPlan
+    ) -> str:
         """Plan the TypeScript implementation."""
         prompt = f"""
         Plan a TypeScript implementation based on:
@@ -260,10 +287,10 @@ class TypeScriptArchitect:
         Create a detailed implementation plan that showcases TypeScript's strengths.
         Focus on type safety, developer experience, and modern tooling.
         """
-        
+
         response = self.agent.run(prompt)
         return response.content
-    
+
     def review_implementation(self, code: str) -> str:
         """Review a TypeScript implementation."""
         prompt = f"""
@@ -279,13 +306,14 @@ class TypeScriptArchitect:
         - Performance considerations
         - Developer experience
         """
-        
+
         response = self.agent.run(prompt)
         return response.content
 
+
 class PolyglotArchitect:
     """Cross-language expert for identifying conversion strategies."""
-    
+
     def __init__(self):
         self.agent = Agent(
             model=OpenAIChat(id="gpt-4.1"),
@@ -304,16 +332,18 @@ class PolyglotArchitect:
                 """),
             markdown=True,
         )
-    
-    def create_conversion_plan(self, analysis: CodeAnalysis, target_language: str) -> ConversionPlan:
+
+    def create_conversion_plan(
+        self, analysis: CodeAnalysis, target_language: str
+    ) -> ConversionPlan:
         """Create a plan for converting code to target language."""
         prompt = f"""
         Create a conversion plan to convert {analysis.language} code to {target_language}.
         
         Original code analysis:
         - Description: {analysis.description}
-        - Key features: {', '.join(analysis.key_features)}
-        - Potential issues: {', '.join(analysis.potential_issues)}
+        - Key features: {", ".join(analysis.key_features)}
+        - Potential issues: {", ".join(analysis.potential_issues)}
         
         Provide:
         1. Conversion strategy
@@ -321,9 +351,9 @@ class PolyglotArchitect:
         3. Recommended patterns for target language
         4. Library mappings if needed
         """
-        
+
         response = self.agent.run(prompt)
-        
+
         # Parse response into ConversionPlan (simplified)
         return ConversionPlan(
             source_language=analysis.language,
@@ -331,11 +361,16 @@ class PolyglotArchitect:
             conversion_strategy=response.content[:300] + "...",
             gotchas=["Gotcha 1", "Gotcha 2"],
             recommended_patterns=["Pattern 1", "Pattern 2"],
-            library_mappings={"lib1": "lib2"}
+            library_mappings={"lib1": "lib2"},
         )
-    
-    def review_conversion(self, original_code: str, converted_code: str, 
-                         source_lang: str, target_lang: str) -> str:
+
+    def review_conversion(
+        self,
+        original_code: str,
+        converted_code: str,
+        source_lang: str,
+        target_lang: str,
+    ) -> str:
         """Review how well a conversion maintained the original intent."""
         prompt = f"""
         Review this code conversion:
@@ -356,13 +391,14 @@ class PolyglotArchitect:
         3. Are there any conversion issues?
         4. Suggestions for improvement?
         """
-        
+
         response = self.agent.run(prompt)
         return response.content
 
+
 class PythonCoder:
     """Implements Python code based on architect plans."""
-    
+
     def __init__(self):
         self.agent = Agent(
             model=OpenAIChat(id="gpt-4.1"),
@@ -380,7 +416,7 @@ class PythonCoder:
                 """),
             markdown=True,
         )
-    
+
     def implement_code(self, plan: str, reference_code: str = "") -> str:
         """Implement Python code based on a plan."""
         prompt = f"""
@@ -398,13 +434,14 @@ class PythonCoder:
         
         Return only the code, no explanations.
         """
-        
+
         response = self.agent.run(prompt)
         return response.content
 
+
 class TypeScriptCoder:
     """Implements TypeScript code based on architect plans."""
-    
+
     def __init__(self):
         self.agent = Agent(
             model=OpenAIChat(id="gpt-4.1"),
@@ -422,7 +459,7 @@ class TypeScriptCoder:
                 """),
             markdown=True,
         )
-    
+
     def implement_code(self, plan: str, reference_code: str = "") -> str:
         """Implement TypeScript code based on a plan."""
         prompt = f"""
@@ -440,122 +477,143 @@ class TypeScriptCoder:
         
         Return only the code, no explanations.
         """
-        
+
         response = self.agent.run(prompt)
         return response.content
+
 
 # ============================================================================
 # ORCHESTRATOR
 # ============================================================================
 
+
 class GACCIAOrchestrator:
     """Main orchestrator for the GACCIA competitive coding system."""
     
-    def __init__(self):
+    def __init__(self, use_koyeb: bool = False):
+        """
+        Initialize the GACCIA orchestrator.
+        
+        Args:
+            use_koyeb: If True, use Koyeb-hosted models for shared knowledge agent
+        """
         # Initialize all agents
-        self.shared_knowledge = SharedKnowledgeAgent()
+        self.shared_knowledge = SharedKnowledgeAgent(use_koyeb=use_koyeb)
         self.python_architect = PythonArchitect()
         self.typescript_architect = TypeScriptArchitect()
         self.polyglot_architect = PolyglotArchitect()
         self.python_coder = PythonCoder()
         self.typescript_coder = TypeScriptCoder()
-        
-    def run_competitive_session(self, code: str, language: str, rounds: int = 3) -> GACCIASession:
+
+    def run_competitive_session(
+        self, code: str, language: str, rounds: int = 3
+    ) -> GACCIASession:
         """Run a complete competitive coding session."""
-        session = GACCIASession(
-            original_code=code,
-            original_language=language.lower()
-        )
-        
+        session = GACCIASession(original_code=code, original_language=language.lower())
+
         current_code = code
         current_language = language.lower()
-        
+
         for round_num in range(rounds):
             print(f"🏁 Round {round_num + 1}/{rounds}")
-            
+
             # Determine target language
             target_language = "typescript" if current_language == "python" else "python"
-            
+
             # Run the conversion flow
             implementation = self._run_language_conversion_flow(
                 current_code, current_language, target_language, round_num + 1
             )
-            
+
             # Store implementation
             if target_language == "python":
                 session.python_implementations.append(implementation)
             else:
                 session.typescript_implementations.append(implementation)
-            
+
             # Update for next round
             current_code = implementation.code
             current_language = target_language
-            
-            print(f"✅ Round {round_num + 1} complete: {current_language} implementation ready")
-        
+
+            print(
+                f"✅ Round {round_num + 1} complete: {current_language} implementation ready"
+            )
+
         return session
-    
-    def _run_language_conversion_flow(self, code: str, source_lang: str, 
-                                    target_lang: str, version: int) -> CodeImplementation:
+
+    def _run_language_conversion_flow(
+        self, code: str, source_lang: str, target_lang: str, version: int
+    ) -> CodeImplementation:
         """Run the multi-agent flow for converting between languages."""
-        
+
         print(f"🔄 Converting {source_lang} → {target_lang}")
-        
+
         # Step 1: Source language architect analyzes the code
         print("📝 Analyzing source code...")
         if source_lang == "python":
             analysis = self.python_architect.analyze_code(code, source_lang)
         else:
             analysis = self.typescript_architect.analyze_code(code, source_lang)
-        
+
         # Step 2: Polyglot architect creates conversion plan
         print("🗺️  Creating conversion plan...")
-        conversion_plan = self.polyglot_architect.create_conversion_plan(analysis, target_lang)
-        
+        conversion_plan = self.polyglot_architect.create_conversion_plan(
+            analysis, target_lang
+        )
+
         # Step 3: Target language architect plans implementation
         print("🏗️  Planning implementation...")
         if target_lang == "python":
-            implementation_plan = self.python_architect.plan_implementation(analysis, conversion_plan)
+            implementation_plan = self.python_architect.plan_implementation(
+                analysis, conversion_plan
+            )
         else:
-            implementation_plan = self.typescript_architect.plan_implementation(analysis, conversion_plan)
-        
+            implementation_plan = self.typescript_architect.plan_implementation(
+                analysis, conversion_plan
+            )
+
         # Step 4: Target language coder implements
         print("💻 Implementing code...")
         if target_lang == "python":
-            implemented_code = self.python_coder.implement_code(implementation_plan, code)
+            implemented_code = self.python_coder.implement_code(
+                implementation_plan, code
+            )
         else:
-            implemented_code = self.typescript_coder.implement_code(implementation_plan, code)
-        
+            implemented_code = self.typescript_coder.implement_code(
+                implementation_plan, code
+            )
+
         # Step 5: Target language architect reviews
         print("🔍 Reviewing implementation...")
         if target_lang == "python":
             review = self.python_architect.review_implementation(implemented_code)
         else:
             review = self.typescript_architect.review_implementation(implemented_code)
-        
+
         # Step 6: Polyglot architect validates conversion
         print("✅ Validating conversion...")
         conversion_review = self.polyglot_architect.review_conversion(
             code, implemented_code, source_lang, target_lang
         )
-        
+
         return CodeImplementation(
             code=implemented_code,
             language=target_lang,
             version=version,
             improvements=[],  # Could extract from reviews
-            architect_notes=f"Review: {review}\n\nConversion Review: {conversion_review}"
+            architect_notes=f"Review: {review}\n\nConversion Review: {conversion_review}",
         )
+
 
 # ============================================================================
 # IMAGE GENERATION
 # ============================================================================
 class ImageGenerationAgent:
     """Generates interpretive art and visualizations for GACCIA results."""
-    
+
     def __init__(self):
         self.agent = Agent(
-            model=OpenAIChat(id="gpt-4o"),
+            model=OpenAIChat("gpt-4o"),
             instructions=dedent("""
                 You are the Image Generation Agent for GACCIA.
                 You create detailed prompts for image generation that capture:
@@ -567,7 +625,7 @@ class ImageGenerationAgent:
                 """),
             markdown=True,
         )
-    
+
     def generate_battle_prompt(self, session_summary: str) -> str:
         """Generate prompt for competitive coding battle image."""
         prompt = f"""
@@ -584,7 +642,7 @@ class ImageGenerationAgent:
         """
         response = self.agent.run(prompt)
         return response.content
-    
+
     def generate_scorecard_prompt(self, evaluation: CompetitiveEvaluation) -> str:
         """Generate prompt for scorecard visualization."""
         prompt = f"""
@@ -598,16 +656,18 @@ class ImageGenerationAgent:
         response = self.agent.run(prompt)
         return response.content
 
+
 # ============================================================================
 # MAIN EXECUTION
 # ============================================================================
 
+
 def main():
     """Example usage of the GACCIA system."""
-    
+
     # Initialize orchestrator
     orchestrator = GACCIAOrchestrator()
-    
+
     # Example Python code to start with
     demo_code = '''
 def fibonacci(n: int) -> int:
@@ -623,35 +683,40 @@ def main():
 if __name__ == "__main__":
     main()
     '''
-    
+
     print("🚀 Starting GACCIA Competitive Coding Session")
     print("=" * 60)
-    
+
     # Run competitive session
     session = orchestrator.run_competitive_session(demo_code, "python", rounds=2)
-    
+
     print("\n📊 Session Results:")
     print(f"Session ID: {session.session_id}")
     print(f"Python implementations: {len(session.python_implementations)}")
     print(f"TypeScript implementations: {len(session.typescript_implementations)}")
-    
+
     # Save results
     results_dir = Path("results") / f"session_{session.session_id}"
     results_dir.mkdir(parents=True, exist_ok=True)
-    
+
     # Save session data (simplified)
     with open(results_dir / "session.json", "w") as f:
         # Note: This would need proper serialization for complex objects
-        json.dump({
-            "session_id": session.session_id,
-            "original_code": session.original_code,
-            "original_language": session.original_language,
-            "created_at": session.created_at.isoformat(),
-            "python_count": len(session.python_implementations),
-            "typescript_count": len(session.typescript_implementations)
-        }, f, indent=2)
-    
+        json.dump(
+            {
+                "session_id": session.session_id,
+                "original_code": session.original_code,
+                "original_language": session.original_language,
+                "created_at": session.created_at.isoformat(),
+                "python_count": len(session.python_implementations),
+                "typescript_count": len(session.typescript_implementations),
+            },
+            f,
+            indent=2,
+        )
+
     print(f"📁 Results saved to {results_dir}")
+
 
 if __name__ == "__main__":
     main()

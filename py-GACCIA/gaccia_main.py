@@ -16,6 +16,7 @@ from dotenv import load_dotenv
 # Import our GACCIA modules (assuming they're in the same directory)
 from gaccia_agents import GACCIAOrchestrator, GACCIASession, CodeImplementation
 from gaccia_evaluators import EvaluationOrchestrator, CompetitiveEvaluation
+from model_config import get_model_config_info
 
 # Load environment variables
 env_path = Path(__file__).parent.parent / ".env"
@@ -54,9 +55,16 @@ class CompletedGACCIASession:
 class GACCIAComplete:
     """Complete GACCIA system combining competitive coding and evaluation."""
     
-    def __init__(self):
-        self.orchestrator = GACCIAOrchestrator()
-        self.evaluator = EvaluationOrchestrator()
+    def __init__(self, use_koyeb: bool = False):
+        """
+        Initialize GACCIA with optional Koyeb model support.
+        
+        Args:
+            use_koyeb: If True, use Koyeb-hosted models for one of the agent types
+        """
+        self.use_koyeb = use_koyeb
+        self.orchestrator = GACCIAOrchestrator(use_koyeb=use_koyeb)
+        self.evaluator = EvaluationOrchestrator(use_koyeb=use_koyeb)
     
     def run_complete_competition(self, code: str, language: str, rounds: int = 2) -> CompletedGACCIASession:
         """Run a complete competitive session with evaluation."""
@@ -64,6 +72,12 @@ class GACCIAComplete:
         print("🚀 GACCIA: Generative Adversarial Competitive Code Improvement")
         print("=" * 80)
         print(f"Starting with {language} code, running {rounds} competitive rounds...")
+        
+        # Show model configuration
+        if self.use_koyeb:
+            print("🌐 Using Koyeb-hosted models for evaluation agents")
+        else:
+            print("🤖 Using OpenAI models for all agents")
         print()
         
         # Phase 1: Competitive Development
@@ -332,7 +346,7 @@ def main():
         print("🚀 GACCIA - Generative Adversarial Competitive Code Improvement")
         print()
         print("Usage:")
-        print("  python gaccia_main.py <example_name> [language] [rounds]")
+        print("  python gaccia_main.py <example_name> [language] [rounds] [--use-koyeb]")
         print()
         print("Available examples:")
         for name in EXAMPLE_CODES.keys():
@@ -340,13 +354,17 @@ def main():
         print()
         print("Languages: python, typescript")
         print("Rounds: number of competitive rounds (default: 2)")
+        print("--use-koyeb: Use Koyeb-hosted models for evaluation agents")
         print()
         print("Example: python gaccia_main.py fibonacci python 3")
+        print("Example: python gaccia_main.py fibonacci python 3 --use-koyeb")
         return
     
+    # Parse arguments
     example_name = sys.argv[1]
     language = sys.argv[2] if len(sys.argv) > 2 else "python"
     rounds = int(sys.argv[3]) if len(sys.argv) > 3 else 2
+    use_koyeb = "--use-koyeb" in sys.argv
     
     if example_name not in EXAMPLE_CODES:
         print(f"❌ Unknown example: {example_name}")
@@ -362,7 +380,7 @@ def main():
     code = EXAMPLE_CODES[example_name][language]
     
     # Initialize and run GACCIA
-    gaccia = GACCIAComplete()
+    gaccia = GACCIAComplete(use_koyeb=use_koyeb)
     
     try:
         # Run the complete competition
