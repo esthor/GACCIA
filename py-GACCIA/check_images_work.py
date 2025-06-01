@@ -1,4 +1,4 @@
-from gaccia_agents_with_images import EnhancedGACCIAOrchestrator
+from gaccia_with_images import EnhancedGACCIAOrchestrator
 
 def test_single_image():
     orchestrator = EnhancedGACCIAOrchestrator()
