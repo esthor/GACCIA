@@ -119,10 +119,15 @@ class GACCIAComplete:
         completed_session = CompletedGACCIASession(session, evaluation)
 
         logger.save_summary(session, evaluation)
-        
+
         # Print results
         self._print_final_results(completed_session)
-        
+
+        # Save full session results to the same directory used by the logger
+        self.save_complete_results(
+            completed_session, results_dir=logger.base_dir
+        )
+
         return completed_session
     
     def _print_final_results(self, completed_session: CompletedGACCIASession):
@@ -152,12 +157,18 @@ class GACCIAComplete:
         
         print("\n" + "=" * 80)
     
-    def save_complete_results(self, completed_session: CompletedGACCIASession, custom_name: Optional[str] = None) -> Path:
+    def save_complete_results(
+        self,
+        completed_session: CompletedGACCIASession,
+        custom_name: Optional[str] = None,
+        results_dir: Optional[Path] = None,
+    ) -> Path:
         """Save all results from the completed session."""
-        
-        # Create results directory
-        session_name = custom_name or f"gaccia_session_{completed_session.session.session_id[:8]}"
-        results_dir = Path("results") / session_name
+
+        # Determine results directory
+        if results_dir is None:
+            session_name = custom_name or f"gaccia_session_{completed_session.session.session_id[:8]}"
+            results_dir = Path("results") / session_name
         results_dir.mkdir(parents=True, exist_ok=True)
         
         # Save original code

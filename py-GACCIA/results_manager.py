@@ -14,7 +14,9 @@ class ResultsLogger:
 
     def __init__(self, session_name: str):
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        self.base_dir = Path(__file__).parent / "results" / f"{timestamp}_{session_name}"
+        # Use repo-level results directory so all components store data in the
+        # same place regardless of where this module lives.
+        self.base_dir = Path("results") / f"{timestamp}_{session_name}"
         self.base_dir.mkdir(parents=True, exist_ok=True)
 
     def log_round(self, round_num: int, impl: CodeImplementation) -> None:
