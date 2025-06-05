@@ -13,6 +13,8 @@ import json
 import sys
 from pathlib import Path
 from typing import Optional, Dict, Any
+from datetime import datetime
+import uuid
 import requests
 from openai import OpenAI
 
@@ -37,7 +39,11 @@ class EnhancedGACCIAOrchestrator(GACCIAOrchestrator):
         self.evaluator = EvaluationOrchestrator()  # Add evaluator
 
     def run_competitive_session_with_images(
-        self, code: str, language: str, rounds: int = 2
+        self,
+        code: str,
+        language: str,
+        rounds: int = 2,
+        session_id: Optional[str] = None,
     ) -> tuple[GACCIASession, Dict[str, str]]:
         """Run competitive session with live image generation."""
 
@@ -48,7 +54,11 @@ class EnhancedGACCIAOrchestrator(GACCIAOrchestrator):
         self._generate_battle_start_image(language, rounds)
 
         # Run the main competitive session
-        session = GACCIASession(original_code=code, original_language=language.lower())
+        session = GACCIASession(
+            session_id=session_id or str(uuid.uuid4()),
+            original_code=code,
+            original_language=language.lower(),
+        )
 
         current_code = code
         current_language = language.lower()
@@ -285,7 +295,9 @@ class EnhancedGACCIAOrchestrator(GACCIAOrchestrator):
             ]
 
             # Download and save the image
-            saved_path = self._download_and_save_image(image_data, filename)
+            saved_path = self._download_and_save_image(
+                image_data, filename, self.results_dir or Path("results")
+            )
 
             # Store in our tracking dict
             self.generated_images[filename] = saved_path
@@ -296,11 +308,15 @@ class EnhancedGACCIAOrchestrator(GACCIAOrchestrator):
             print(f"⚠️  Image generation failed: {e}")
             return None
 
-    def _download_and_save_image(self, image_data: list, filename: str) -> str:
+    def _download_and_save_image(
+        self, image_data: list, filename: str, results_dir: Path
+    ) -> str:
         """Download image and save to results directory."""
         try:
-            # Create images directory
-            images_dir = Path("results") / "battle_images"
+            # Ensure a valid directory
+            results_dir = results_dir or Path("results")
+            # Create images directory within the provided results_dir
+            images_dir = results_dir / "battle_images"
             images_dir.mkdir(parents=True, exist_ok=True)
 
             for idx, image_base64 in enumerate(image_data):
@@ -322,6 +338,14 @@ class EnhancedGACCIAOrchestrator(GACCIAOrchestrator):
     ) -> tuple[CompletedGACCIASession, Dict[str, str]]:
         """Run a complete competitive session with evaluation and live image generation."""
 
+        # Prepare results directory for this session
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        session_id = str(uuid.uuid4())
+        self.results_dir = Path("results") / f"gaccia_{timestamp}_{session_id[:8]}"
+        self.results_dir.mkdir(parents=True, exist_ok=True)
+
+        print(f"Results will be saved to: {self.results_dir}")
+
         print("🚀 GACCIA: Generative Adversarial Competitive Code Improvement")
         print("🎨 WITH LIVE IMAGE GENERATION!")
         print("=" * 80)
@@ -331,7 +355,9 @@ class EnhancedGACCIAOrchestrator(GACCIAOrchestrator):
         # Phase 1: Competitive Development with Images
         print("🥊 PHASE 1: COMPETITIVE DEVELOPMENT WITH LIVE IMAGES")
         print("-" * 60)
-        session, images = self.run_competitive_session_with_images(code, language, rounds)
+        session, images = self.run_competitive_session_with_images(
+            code, language, rounds, session_id=session_id
+        )
 
         # Phase 2: Evaluation
         print("\n🏆 PHASE 2: COMPETITIVE EVALUATION")
@@ -388,9 +414,8 @@ class EnhancedGACCIAOrchestrator(GACCIAOrchestrator):
     def _save_complete_results_with_images(self, completed_session: CompletedGACCIASession, images: Dict[str, str]):
         """Save all results including code files, evaluations, and images."""
 
-        # Create results directory
-        session_name = f"gaccia_with_images_{completed_session.session.session_id[:8]}"
-        results_dir = Path("results") / session_name
+        # Use the orchestrator's results directory
+        results_dir = self.results_dir
         results_dir.mkdir(parents=True, exist_ok=True)
 
         print(f"\n💾 Saving complete results to: {results_dir}")
