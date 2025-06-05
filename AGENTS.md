@@ -12,3 +12,6 @@ README.md has the outline and purpose of this project. Read that first.
 `AGENTS.md` (the current file) is a dynamic file where we describe the structure of the codebase, current work and plans, and is our working communication doc for the project. It is especially useful for coding agents to keep track of what they're all working on and have the current correct context.
 
 ## Project Preferences
+
+## Feature Planning
+- Added [docs/paradigm_shift.md](docs/paradigm_shift.md) describing the 'Paradigm Shift' feature for selecting a programming paradigm.

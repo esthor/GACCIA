@@ -123,3 +123,5 @@ Core: Setup two agents (or two multi-agent flows) that write matching code in an
 2. Generate an image of Code
 3. Generate an image of the eval results
 4. generate images from the python agent and typescript agent image gen prompts
+\n## Paradigm Shift
+See [docs/paradigm_shift.md](docs/paradigm_shift.md) for details on letting users choose a programming paradigm (OOP, FP, etc.).
