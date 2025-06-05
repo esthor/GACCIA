@@ -10,7 +10,7 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 from textwrap import dedent
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 
 from agno.agent import Agent
 
@@ -331,7 +331,12 @@ class EvaluationOrchestrator:
         self.python_snark = SnarkGenerator("python", use_koyeb=use_koyeb)
         self.typescript_snark = SnarkGenerator("typescript", use_koyeb=use_koyeb)
     
-    def evaluate_implementations(self, python_code: str, typescript_code: str) -> CompetitiveEvaluation:
+    def evaluate_implementations(
+        self,
+        python_code: str,
+        typescript_code: str,
+        results_dir: Optional[Path] = None,
+    ) -> CompetitiveEvaluation:
         """Run complete evaluation of both implementations."""
         
         print("🏆 Starting Competitive Evaluation")
@@ -340,10 +345,17 @@ class EvaluationOrchestrator:
         # Evaluate Python implementation
         print("🐍 Evaluating Python implementation...")
         python_evaluations = []
+        eval_dir = None
+        if results_dir:
+            eval_dir = results_dir / "evaluations"
+            eval_dir.mkdir(parents=True, exist_ok=True)
+
         for dimension, judge in self.python_judges.items():
             print(f"  📊 {dimension}...")
             evaluation = judge.evaluate(python_code, "python")
             python_evaluations.append(evaluation)
+            if eval_dir:
+                self._append_evaluation(eval_dir, "python", evaluation)
         
         # Evaluate TypeScript implementation
         print("📘 Evaluating TypeScript implementation...")
@@ -352,6 +364,8 @@ class EvaluationOrchestrator:
             print(f"  📊 {dimension}...")
             evaluation = judge.evaluate(typescript_code, "typescript")
             typescript_evaluations.append(evaluation)
+            if eval_dir:
+                self._append_evaluation(eval_dir, "typescript", evaluation)
         
         # Calculate total scores
         python_total = sum(eval.score for eval in python_evaluations) / len(python_evaluations)
@@ -396,6 +410,21 @@ class EvaluationOrchestrator:
             typescript_snark=typescript_snark_comment,
             summary=summary
         )
+
+    def _append_evaluation(self, eval_dir: Path, language: str, evaluation: DetailedEvaluation) -> None:
+        """Append a single DetailedEvaluation to a JSONL file."""
+        record = {
+            "language": language,
+            "dimension": evaluation.dimension,
+            "score": evaluation.score,
+            "reasoning": evaluation.reasoning,
+            "strengths": evaluation.strengths,
+            "weaknesses": evaluation.weaknesses,
+            "suggestions": evaluation.suggestions,
+        }
+        with open(eval_dir / "detailed_evaluations.jsonl", "a") as f:
+            json.dump(record, f)
+            f.write("\n")
     
     def print_detailed_results(self, evaluation: CompetitiveEvaluation):
         """Print detailed evaluation results."""

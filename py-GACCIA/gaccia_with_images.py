@@ -35,6 +35,7 @@ class EnhancedGACCIAOrchestrator(GACCIAOrchestrator):
         self.openai_client = OpenAI()  # Will use OPENAI_API_KEY from env
         self.generated_images = {}  # Store image URLs/paths
         self.evaluator = EvaluationOrchestrator()  # Add evaluator
+        self.results_dir: Optional[Path] = None
 
     def run_competitive_session_with_images(
         self, code: str, language: str, rounds: int = 2
@@ -49,6 +50,12 @@ class EnhancedGACCIAOrchestrator(GACCIAOrchestrator):
 
         # Run the main competitive session
         session = GACCIASession(original_code=code, original_language=language.lower())
+
+        # Prepare results directory for this session
+        self.results_dir = Path("results") / f"gaccia_with_images_{session.session_id[:8]}"
+        self.results_dir.mkdir(parents=True, exist_ok=True)
+        (self.results_dir / "rounds").mkdir(parents=True, exist_ok=True)
+        (self.results_dir / "evaluations").mkdir(parents=True, exist_ok=True)
 
         current_code = code
         current_language = language.lower()
@@ -73,6 +80,13 @@ class EnhancedGACCIAOrchestrator(GACCIAOrchestrator):
                 session.python_implementations.append(implementation)
             else:
                 session.typescript_implementations.append(implementation)
+
+            # Persist implementation for this round
+            if self.results_dir is not None:
+                ext = "py" if target_language == "python" else "ts"
+                round_path = self.results_dir / "rounds" / f"round_{round_num + 1}_{target_language}.{ext}"
+                with open(round_path, "w") as f:
+                    f.write(implementation.code)
 
             # Generate round completion image
             self._generate_round_completion_image(
@@ -345,7 +359,11 @@ class EnhancedGACCIAOrchestrator(GACCIAOrchestrator):
             raise ValueError("Need both Python and TypeScript implementations for evaluation!")
 
         # Run evaluation
-        evaluation = self.evaluator.evaluate_implementations(final_python, final_typescript)
+        evaluation = self.evaluator.evaluate_implementations(
+            final_python,
+            final_typescript,
+            results_dir=self.results_dir,
+        )
 
         # Create completed session
         completed_session = CompletedGACCIASession(session, evaluation)
@@ -388,10 +406,12 @@ class EnhancedGACCIAOrchestrator(GACCIAOrchestrator):
     def _save_complete_results_with_images(self, completed_session: CompletedGACCIASession, images: Dict[str, str]):
         """Save all results including code files, evaluations, and images."""
 
-        # Create results directory
+        # Create results directory if not already set
         session_name = f"gaccia_with_images_{completed_session.session.session_id[:8]}"
-        results_dir = Path("results") / session_name
+        results_dir = self.results_dir or Path("results") / session_name
         results_dir.mkdir(parents=True, exist_ok=True)
+        (results_dir / "rounds").mkdir(parents=True, exist_ok=True)
+        (results_dir / "evaluations").mkdir(parents=True, exist_ok=True)
 
         print(f"\n💾 Saving complete results to: {results_dir}")
 
