@@ -358,52 +358,75 @@ function formatWeather(weatherData: WeatherData): string {
 
 def main():
     """Main CLI interface for GACCIA."""
-    
-    if len(sys.argv) < 2:
-        print("🚀 GACCIA - Generative Adversarial Competitive Code Improvement")
-        print()
-        print("Usage:")
-        print("  python gaccia_main.py <example_name> [language] [rounds] [--use-koyeb]")
-        print()
-        print("Available examples:")
-        for name in EXAMPLE_CODES.keys():
-            print(f"  - {name}")
-        print()
-        print("Languages: python, typescript")
-        print("Rounds: number of competitive rounds (default: 2)")
-        print("--use-koyeb: Use Koyeb-hosted models for evaluation agents")
-        print()
-        print("Example: python gaccia_main.py fibonacci python 3")
-        print("Example: python gaccia_main.py fibonacci python 3 --use-koyeb")
-        return
-    
-    # Parse arguments
-    example_name = sys.argv[1]
-    language = sys.argv[2] if len(sys.argv) > 2 else "python"
-    rounds = int(sys.argv[3]) if len(sys.argv) > 3 else 2
-    use_koyeb = "--use-koyeb" in sys.argv
-    
-    if example_name not in EXAMPLE_CODES:
-        print(f"❌ Unknown example: {example_name}")
-        print(f"Available examples: {', '.join(EXAMPLE_CODES.keys())}")
-        return
-    
-    if language not in ["python", "typescript"]:
-        print(f"❌ Unknown language: {language}")
-        print("Available languages: python, typescript")
-        return
-    
-    # Get the example code
-    code = EXAMPLE_CODES[example_name][language]
-    
+
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Run a GACCIA competitive coding session"
+    )
+    parser.add_argument(
+        "example",
+        nargs="?",
+        help="Name of built in example to use if --file/--code not provided",
+    )
+    parser.add_argument(
+        "language", nargs="?", default="python", help="Starting language"
+    )
+    parser.add_argument(
+        "rounds", nargs="?", type=int, default=2, help="Number of rounds"
+    )
+    parser.add_argument(
+        "--use-koyeb",
+        action="store_true",
+        help="Use Koyeb-hosted models for evaluation agents",
+    )
+    parser.add_argument(
+        "--file", dest="code_file", help="Path to custom code file to use"
+    )
+    parser.add_argument(
+        "--code", dest="code_str", help="Custom code string to use"
+    )
+
+    args = parser.parse_args()
+
+    language = args.language
+    use_koyeb = args.use_koyeb
+
+    if args.code_str:
+        code = args.code_str
+        session_name = "custom"
+    elif args.code_file:
+        try:
+            with open(args.code_file, "r") as f:
+                code = f.read()
+        except OSError as e:
+            print(f"❌ Failed to read file: {e}")
+            return
+        session_name = Path(args.code_file).stem
+    else:
+        if not args.example:
+            parser.print_help()
+            print()
+            print("Available examples:")
+            for name in EXAMPLE_CODES.keys():
+                print(f"  - {name}")
+            return
+        example_name = args.example
+        if example_name not in EXAMPLE_CODES:
+            print(f"❌ Unknown example: {example_name}")
+            print(f"Available examples: {', '.join(EXAMPLE_CODES.keys())}")
+            return
+        code = EXAMPLE_CODES[example_name][language]
+        session_name = example_name
+
     # Initialize and run GACCIA
     gaccia = GACCIAComplete(use_koyeb=use_koyeb)
-    
+
     try:
         # Run the complete competition
-        logger = ResultsLogger(f"{example_name}_{language}")
+        logger = ResultsLogger(f"{session_name}_{language}")
         completed_session = gaccia.run_complete_competition(
-            code, language, rounds, logger=logger
+            code, language, args.rounds, logger=logger
         )
 
         if completed_session:

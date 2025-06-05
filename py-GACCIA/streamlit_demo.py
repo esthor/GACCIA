@@ -27,17 +27,25 @@ example = st.sidebar.selectbox("Choose Example", list(EXAMPLE_CODES.keys()))
 language = st.sidebar.selectbox("Starting Language", ["python", "typescript"])
 rounds = st.sidebar.slider("Competition Rounds", 1, 5, 2)
 
+# Allow custom code input
+st.sidebar.markdown("### Custom Code (optional)")
+custom_code = st.sidebar.text_area("Paste code here", height=200)
+uploaded = st.sidebar.file_uploader("Or upload a file", type=["py", "ts", "txt"])
+if uploaded:
+    custom_code = uploaded.read().decode("utf-8")
+
 # Battle button
 button_text = "🎨 Start Epic Battle!" if with_images else "🚀 Start Competition"
 if st.sidebar.button(button_text):
-    code = EXAMPLE_CODES[example][language]
+    code = custom_code.strip() if custom_code.strip() else EXAMPLE_CODES[example][language]
+    session_name = "custom" if custom_code.strip() else example
     
     if with_images and os.getenv("OPENAI_API_KEY"):
         # Run with image generation
         with st.spinner("🎬 Running epic coding battle with live image generation..."):
             try:
                 orchestrator = EnhancedGACCIAOrchestrator()
-                logger = ResultsLogger(f"{example}_{language}_img")
+                logger = ResultsLogger(f"{session_name}_{language}_img")
                 completed_session, images = orchestrator.run_complete_competition_with_images(
                     code, language, rounds, logger=logger
                 )
@@ -80,13 +88,13 @@ if st.sidebar.button(button_text):
                 # Fallback to standard competition
                 with st.spinner("Running standard competitive coding session..."):
                     gaccia = GACCIAComplete()
-                    logger = ResultsLogger(f"{example}_fallback")
+                    logger = ResultsLogger(f"{session_name}_fallback")
                     completed_session = gaccia.run_complete_competition(code, language, rounds, logger=logger)
     else:
         # Run standard competition
         with st.spinner("Running competitive coding session..."):
             gaccia = GACCIAComplete()
-            logger = ResultsLogger(f"{example}_{language}")
+            logger = ResultsLogger(f"{session_name}_{language}")
             completed_session = gaccia.run_complete_competition(code, language, rounds, logger=logger)
         
         st.success("Competition Complete!")
